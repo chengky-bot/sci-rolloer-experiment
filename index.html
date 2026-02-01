@@ -1,0 +1,459 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, RotateCcw, CheckCircle, ArrowRight, BookOpen, Star, Music, Settings, Menu, Home } from 'lucide-react';
+
+// --- 全局樣式與動畫常數 ---
+const COLORS = {
+  sand: 'bg-amber-100',
+  sky: 'bg-sky-200',
+  pyramid: 'text-amber-300',
+  text: 'text-slate-800',
+  highlight: 'text-amber-600',
+  hard: 'bg-red-100 border-red-400 text-red-600',
+  easy: 'bg-green-100 border-green-400 text-green-600',
+  btnPrimary: 'bg-blue-500 hover:bg-blue-600 text-white',
+  btnSecondary: 'bg-amber-500 hover:bg-amber-600 text-white',
+};
+
+// --- 子組件：導師頭像與提示 ---
+const TeacherGuide = ({ text, mood = 'happy' }) => (
+  <div className="flex items-start gap-4 p-4 bg-white rounded-2xl shadow-lg border-l-8 border-blue-400 mb-4 animate-fade-in">
+    <div className="text-4xl filter drop-shadow-md">
+      {mood === 'happy' ? '👩‍🏫' : mood === 'thinking' ? '🤔' : mood === 'oops' ? '😲' : '🌟'}
+    </div>
+    <div className="relative bg-blue-50 px-4 py-2 rounded-xl text-lg font-bold text-slate-700">
+      {text}
+      <div className="absolute top-3 -left-2 w-4 h-4 bg-blue-50 transform rotate-45"></div>
+    </div>
+  </div>
+);
+
+// --- 子組件：浮水印 ---
+const Watermark = () => (
+  <div className="fixed bottom-2 right-2 z-50 opacity-50 text-xs font-mono text-slate-500 bg-white/80 px-2 py-1 rounded select-none pointer-events-none">
+    wmc廖老師設計
+  </div>
+);
+
+// --- 頁面 1：滾子實驗 (有無對照) ---
+const RollingExperiment = ({ onNext }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progressA, setProgressA] = useState(0); 
+  const [progressB, setProgressB] = useState(0); 
+  const [finished, setFinished] = useState(false);
+  
+  useEffect(() => {
+    let interval;
+    if (isPlaying && !finished) {
+      interval = setInterval(() => {
+        setProgressA(prev => Math.min(prev + 0.3, 100));
+        setProgressB(prev => {
+          const next = prev + 1.2;
+          if (next >= 100) {
+            setFinished(true);
+            setIsPlaying(false);
+            return 100;
+          }
+          return next;
+        });
+      }, 20);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, finished]);
+
+  return (
+    <div className="flex flex-col h-full animate-fade-in">
+      <TeacherGuide text="仔細看！哪一邊的巨石跑得比較快？注意看工人的表情喔！" />
+      <div className="flex-1 bg-amber-50 rounded-xl p-4 shadow-inner border-2 border-amber-200 relative overflow-hidden">
+        <div className="mb-8 relative">
+          <div className="absolute top-0 left-0 bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-bold border border-red-300 z-10">1. 直接拉 (摩擦力大) 🥵</div>
+          <div className="h-32 border-b-4 border-stone-400 bg-stone-200/50 flex items-end relative">
+            <div className="absolute bottom-0 transition-all duration-75 flex flex-col items-center" style={{ left: `${progressA}%`, transform: 'translateX(-20%)' }}>
+              <div className="flex -mb-2">
+                <span className="text-3xl animate-bounce" style={{ animationDuration: '1s' }}>🥵</span>
+                <span className="text-3xl animate-bounce" style={{ animationDuration: '1.1s' }}>🥵</span>
+              </div>
+              <div className="w-24 h-16 bg-stone-600 rounded-sm flex items-center justify-center text-white font-bold shadow-xl relative text-sm">巨石</div>
+            </div>
+          </div>
+        </div>
+        <div className="relative">
+          <div className="absolute top-0 left-0 bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm font-bold border border-green-300 z-10">2. 用滾子 (摩擦力小) 😄</div>
+          <div className="h-32 border-b-4 border-amber-700 bg-amber-200/30 flex items-end relative">
+            <div className="absolute bottom-0 transition-all duration-75 flex flex-col items-center" style={{ left: `${progressB}%`, transform: 'translateX(-20%)' }}>
+              <div className="flex -mb-2"><span className="text-3xl animate-pulse">😄</span></div>
+              <div className="relative">
+                <div className="w-24 h-16 bg-stone-600 rounded-sm flex items-center justify-center text-white font-bold shadow-xl z-10 relative text-sm">巨石</div>
+                <div className="flex justify-between px-2 -mt-3 absolute w-full -bottom-3">
+                  <div className={`w-4 h-4 bg-amber-800 rounded-full ${isPlaying && !finished ? 'animate-spin' : ''}`}></div>
+                  <div className={`w-4 h-4 bg-amber-800 rounded-full ${isPlaying && !finished ? 'animate-spin' : ''}`}></div>
+                  <div className={`w-4 h-4 bg-amber-800 rounded-full ${isPlaying && !finished ? 'animate-spin' : ''}`}></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 flex justify-center gap-4">
+        {!isPlaying && !finished ? (
+          <button onClick={() => setIsPlaying(true)} className={`${COLORS.btnPrimary} px-8 py-3 rounded-full text-xl font-bold shadow-lg flex items-center gap-2`}><Play fill="currentColor" /> 開始實驗</button>
+        ) : (
+          <button onClick={() => {setProgressA(0); setProgressB(0); setFinished(false); setIsPlaying(false);}} className={`${COLORS.btnSecondary} px-6 py-2 rounded-full text-lg font-bold shadow-lg flex items-center gap-2`}><RotateCcw /> 重來</button>
+        )}
+      </div>
+      {finished && (
+        <div className="mt-4 bg-green-50 p-4 rounded-xl border-2 border-green-200 flex items-center justify-between animate-bounce-in">
+          <div className="text-lg text-green-800 font-bold">🌟 滾子讓摩擦力變小了！</div>
+          <button onClick={onNext} className="bg-green-500 text-white px-6 py-2 rounded-lg font-bold shadow flex items-center gap-2">下一關 <ArrowRight /></button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- 頁面 2：形狀挑戰 ---
+const ShapeChallenge = ({ onNext }) => {
+  const [selectedShape, setSelectedShape] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [progress, setProgress] = useState(0);
+
+  const startTest = (shape) => {
+    setSelectedShape(shape);
+    setStatus('running');
+    setProgress(0);
+  };
+
+  useEffect(() => {
+    if (status === 'running') {
+      const speed = selectedShape === 'circle' ? 1.5 : 0.2;
+      const interval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) {
+            setStatus('done');
+            return 100;
+          }
+          return prev + speed;
+        });
+      }, 20);
+      return () => clearInterval(interval);
+    }
+  }, [status, selectedShape]);
+
+  return (
+    <div className="flex flex-col h-full animate-fade-in">
+      <TeacherGuide 
+        text={status === 'idle' ? "我們要換哪一種形狀的東西當滾子？" : selectedShape === 'circle' ? "哇！圓形的滾子滾得好順！" : "哎呀！這不是圓形的，好難拉動！"} 
+        mood={status === 'idle' ? 'thinking' : selectedShape === 'circle' ? 'happy' : 'oops'} 
+      />
+      <div className="flex-1 bg-sky-50 rounded-xl p-6 border-2 border-sky-200 flex flex-col justify-between">
+        <div className="h-32 border-b-4 border-sky-300 relative bg-white/50 rounded-t-lg">
+           <div className={`absolute bottom-0 transition-all flex flex-col items-center`} style={{ left: `${progress}%`, transform: 'translateX(-20%)' }}>
+              <div className="text-3xl mb-1">{selectedShape === 'circle' ? '😄' : selectedShape ? '🥵' : ''}</div>
+              <div className="w-20 h-12 bg-stone-500 rounded flex items-center justify-center text-white text-xs font-bold shadow-lg">巨石</div>
+              <div className="flex justify-around w-full -mt-1">
+                {selectedShape === 'circle' && <div className={`flex gap-2`}>{[1,2,3].map(i=><div key={i} className={`w-4 h-4 bg-amber-700 rounded-full ${status==='running'?'animate-spin':''}`}></div>)}</div>}
+                {selectedShape === 'square' && <div className="flex gap-2">{[1,2,3].map(i=><div key={i} className="w-4 h-4 bg-amber-900"></div>)}</div>}
+                {selectedShape === 'triangle' && <div className="flex gap-2">{[1,2,3].map(i=><div key={i} className="w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-b-[12px] border-stone-800"></div>)}</div>}
+              </div>
+           </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4 mt-6">
+           <button onClick={()=>startTest('square')} className={`p-4 rounded-2xl border-4 transition-all flex flex-col items-center ${selectedShape==='square'?'border-blue-500 bg-blue-100 shadow-inner':'border-white bg-white shadow-md'}`}>
+             <div className="w-12 h-12 bg-stone-400 mb-2"></div>
+             <span className="font-bold text-stone-600 text-sm text-center">a. 方形積木</span>
+           </button>
+           <button onClick={()=>startTest('circle')} className={`p-4 rounded-2xl border-4 transition-all flex flex-col items-center ${selectedShape==='circle'?'border-green-500 bg-green-100 shadow-inner':'border-white bg-white shadow-md'}`}>
+             <div className="w-12 h-12 bg-amber-700 rounded-full mb-2"></div>
+             <span className="font-bold text-green-700 text-sm text-center">b. 圓形滾子</span>
+           </button>
+           <button onClick={()=>startTest('triangle')} className={`p-4 rounded-2xl border-4 transition-all flex flex-col items-center ${selectedShape==='triangle'?'border-blue-500 bg-blue-100 shadow-inner':'border-white bg-white shadow-md'}`}>
+             <div className="w-0 h-0 border-l-[24px] border-l-transparent border-r-[24px] border-r-transparent border-b-[40px] border-stone-400 mb-2"></div>
+             <span className="font-bold text-stone-600 text-sm text-center">c. 三角形積木</span>
+           </button>
+        </div>
+      </div>
+      {status === 'done' && selectedShape === 'circle' && (
+        <button onClick={onNext} className="mt-4 bg-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce self-center flex items-center gap-2">下一關：滾珠實驗 <ArrowRight /></button>
+      )}
+    </div>
+  );
+};
+
+// --- 頁面 3：滾珠實驗 ---
+const BallExperiment = ({ onNext }) => {
+  const [mode, setMode] = useState(null);
+  const [posX, setPosX] = useState(50);
+  const [posY, setPosY] = useState(50);
+  const [isDone, setIsDone] = useState(false);
+
+  const move = (dx, dy) => {
+    if (mode === 'roller' && dx !== 0) return;
+    setPosX(p => Math.max(10, Math.min(90, p + dx)));
+    setPosY(p => {
+        const next = Math.max(10, Math.min(90, p + dy));
+        if (next >= 85) setIsDone(true);
+        return next;
+    });
+  };
+
+  return (
+    <div className="flex flex-col h-full animate-fade-in">
+      <TeacherGuide text={!mode ? "圓柱只能直走，如果要轉彎怎麼辦？試試看「圓球」吧！" : mode === 'roller' ? "哎呀！圓柱子不能左右轉彎！" : "哇！圓球可以隨便轉向耶！"} />
+      <div className="flex-1 bg-stone-100 rounded-xl border-2 border-stone-300 relative overflow-hidden p-4">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-8 bg-green-200 border-2 border-dashed border-green-500 rounded-t-lg flex items-center justify-center text-xs font-bold text-green-700">終點</div>
+        
+        <div className="absolute transition-all duration-200 flex flex-col items-center" style={{ left: `${posX}%`, top: `${posY}%`, transform: 'translate(-50%, -50%)' }}>
+           <div className="w-16 h-12 bg-stone-600 rounded shadow-2xl flex items-center justify-center text-[10px] text-white font-bold">巨石</div>
+           <div className="flex gap-2 mt-1">
+              {mode === 'roller' ? (
+                <div className="w-12 h-3 bg-amber-800 rounded-full"></div>
+              ) : mode === 'ball' ? (
+                <div className="flex gap-1">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                </div>
+              ) : null}
+           </div>
+        </div>
+
+        {mode && (
+            <div className="absolute right-4 bottom-4 grid grid-cols-3 gap-1">
+                <div />
+                <button onMouseDown={()=>move(0, 5)} className="w-10 h-10 bg-white rounded shadow border active:bg-gray-100 flex items-center justify-center">⬇️</button>
+                <div />
+                <button onMouseDown={()=>move(-5, 0)} className="w-10 h-10 bg-white rounded shadow border active:bg-gray-100 flex items-center justify-center">⬅️</button>
+                <button onMouseDown={()=>move(0, -5)} className="w-10 h-10 bg-white rounded shadow border active:bg-gray-100 flex items-center justify-center">⬆️</button>
+                <button onMouseDown={()=>move(5, 0)} className="w-10 h-10 bg-white rounded shadow border active:bg-gray-100 flex items-center justify-center">➡️</button>
+            </div>
+        )}
+
+        {!mode && (
+            <div className="absolute inset-0 bg-black/5 backdrop-blur-[2px] flex items-center justify-center gap-4">
+                <button onClick={()=>setMode('roller')} className="bg-white p-4 rounded-xl shadow-lg border-2 border-amber-600 font-bold">a. 圓柱子</button>
+                <button onClick={()=>setMode('ball')} className="bg-white p-4 rounded-xl shadow-lg border-2 border-blue-600 font-bold">b. 小圓球</button>
+            </div>
+        )}
+      </div>
+      
+      {isDone && (
+        <button onClick={onNext} className="mt-4 bg-blue-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce self-center flex items-center gap-2">下一關：斜面實驗 <ArrowRight /></button>
+      )}
+    </div>
+  );
+};
+
+// --- 頁面 4：斜面實驗 ---
+const SlopeExperiment = ({ onNext }) => {
+  const [slopeType, setSlopeType] = useState(null);
+  const [animating, setAnimating] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  const startSim = (type) => {
+    if (animating) return;
+    setSlopeType(type);
+    setAnimating(true);
+    setProgress(0);
+  };
+
+  useEffect(() => {
+    if (animating) {
+      const speed = slopeType === 'steep' ? 0.5 : 1.5;
+      const interval = setInterval(() => {
+        setProgress(p => {
+          if (p >= 100) { setAnimating(false); return 100; }
+          return p + speed;
+        });
+      }, 20);
+      return () => clearInterval(interval);
+    }
+  }, [animating, slopeType]);
+
+  return (
+    <div className="flex flex-col h-full animate-fade-in">
+      <TeacherGuide text="選選看，哪一種斜坡雖然路比較長，但是拉起來最輕鬆省力？" />
+      <div className="flex-1 flex gap-4">
+        <div onClick={()=>startSim('steep')} className={`flex-1 rounded-xl border-4 cursor-pointer relative overflow-hidden p-4 ${slopeType==='steep'?'border-blue-500 bg-blue-50':'border-stone-200 bg-white'}`}>
+           <div className="bg-red-100 text-red-600 px-2 py-1 rounded font-bold text-xs inline-block mb-2">a. 陡坡 (好費力)</div>
+           <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+              <path d="M0,100 L80,20 L80,100 Z" fill="#e7e5e4" stroke="#78716c" />
+              {slopeType==='steep' && <g transform={`translate(${progress*0.8}, ${100-(progress*0.8)})`}><text x="-12" y="-5" fontSize="10">🥵</text><rect width="8" height="6" fill="#57534e" transform="rotate(-45)"/></g>}
+           </svg>
+        </div>
+        <div onClick={()=>startSim('gentle')} className={`flex-1 rounded-xl border-4 cursor-pointer relative overflow-hidden p-4 ${slopeType==='gentle'?'border-blue-500 bg-blue-50':'border-stone-200 bg-white'}`}>
+           <div className="bg-green-100 text-green-600 px-2 py-1 rounded font-bold text-xs inline-block mb-2">b. 緩坡 (超省力)</div>
+           <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+              <path d="M0,100 L100,60 L100,100 Z" fill="#e7e5e4" stroke="#78716c" />
+              {slopeType==='gentle' && <g transform={`translate(${progress}, ${100-(progress*0.4)})`}><text x="-8" y="-8" fontSize="10">😄</text><rect width="8" height="6" fill="#57534e" transform="rotate(-21)"/></g>}
+           </svg>
+        </div>
+      </div>
+      {!animating && slopeType === 'gentle' && progress === 100 && (
+        <button onClick={onNext} className="mt-4 bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce self-center flex items-center gap-2">寫紀錄簿囉！ <ArrowRight /></button>
+      )}
+    </div>
+  );
+};
+
+// --- 頁面 5：紀錄簿 ---
+const LabReport = ({ onReset }) => {
+  const [stamps, setStamps] = useState({ rolling: null, shape: null, ball: null, slope: null });
+  const isComplete = stamps.rolling === 'easy' && stamps.shape === 'circle' && stamps.ball === 'ball' && stamps.slope === 'easy';
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto px-4 pb-8 animate-fade-in">
+      <TeacherGuide text="最後一步！請把剛才發現的科學祕密選出來。" mood="star" />
+      <div className="bg-white border-4 border-stone-300 rounded-2xl p-6 shadow-xl space-y-6">
+        <h2 className="text-2xl font-black text-center text-stone-700 border-b-2 border-dashed pb-2">📋 小小科學家手冊</h2>
+        
+        <div>
+          <p className="font-bold text-stone-600 mb-2 text-sm">1. 加上圓圓的滾子後，拉起來...</p>
+          <div className="flex gap-4">
+            <button onClick={()=>setStamps({...stamps, rolling:'hard'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.rolling==='hard'?'bg-red-50 border-red-500':'border-stone-200'}`}>a. 🥵 很費力</button>
+            <button onClick={()=>setStamps({...stamps, rolling:'easy'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.rolling==='easy'?'bg-green-50 border-green-500':'border-stone-200'}`}>b. 😄 很省力</button>
+          </div>
+        </div>
+
+        <div>
+          <p className="font-bold text-stone-600 mb-2 text-sm">2. 哪種形狀當滾子才動得快？</p>
+          <div className="flex gap-3">
+            <button onClick={()=>setStamps({...stamps, shape:'square'})} className={`flex-1 p-2 rounded-xl border-2 text-xs ${stamps.shape==='square'?'bg-red-50 border-red-500':'border-stone-200'}`}>a. ⬜ 方形</button>
+            <button onClick={()=>setStamps({...stamps, shape:'circle'})} className={`flex-1 p-2 rounded-xl border-2 text-xs ${stamps.shape==='circle'?'bg-green-50 border-green-500':'border-stone-200'}`}>b. ⭕ 圓形</button>
+            <button onClick={()=>setStamps({...stamps, shape:'triangle'})} className={`flex-1 p-2 rounded-xl border-2 text-xs ${stamps.shape==='triangle'?'bg-red-50 border-red-500':'border-stone-200'}`}>c. 🔺 三角形</button>
+          </div>
+        </div>
+
+        <div>
+          <p className="font-bold text-stone-600 mb-2 text-sm">3. 想要自由轉彎，要用什麼？</p>
+          <div className="flex gap-4">
+            <button onClick={()=>setStamps({...stamps, ball:'roller'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.ball==='roller'?'bg-red-50 border-red-500':'border-stone-200'}`}>a. 圓柱子</button>
+            <button onClick={()=>setStamps({...stamps, ball:'ball'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.ball==='ball'?'bg-green-50 border-green-500':'border-stone-200'}`}>b. 小圓球</button>
+          </div>
+        </div>
+
+        <div>
+          <p className="font-bold text-stone-600 mb-2 text-sm">4. 想要輕鬆省力，要選哪種斜坡？</p>
+          <div className="flex gap-4">
+            <button onClick={()=>setStamps({...stamps, slope:'hard'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.slope==='hard'?'bg-red-50 border-red-500':'border-stone-200'}`}>a. ⛰️ 陡坡</button>
+            <button onClick={()=>setStamps({...stamps, slope:'easy'})} className={`flex-1 p-2 rounded-xl border-2 text-sm ${stamps.slope==='easy'?'bg-green-50 border-green-500':'border-stone-200'}`}>b. 🎢 緩坡</button>
+          </div>
+        </div>
+
+        {isComplete && (
+           <div className="bg-amber-100 p-4 rounded-3xl border-4 border-amber-400 text-center animate-bounce-in mt-4">
+              <div className="text-4xl mb-2">👑</div>
+              <p className="text-xl font-black text-amber-700">太棒了！</p>
+              <p className="text-stone-600 text-sm font-bold">你學會了科學建築師的所有祕密！</p>
+              <button onClick={onReset} className="mt-2 bg-amber-500 text-white px-6 py-2 rounded-full font-bold shadow-md hover:scale-105 transition-all text-sm">回首頁</button>
+           </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// --- 主管理器 ---
+const App = () => {
+  const [stage, setStage] = useState('intro'); // intro, rolling, shape, ball, slope, report
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const stages = [
+    { id: 'rolling', name: '1. 滾子對照' },
+    { id: 'shape', name: '2. 形狀挑戰' },
+    { id: 'ball', name: '3. 滾珠轉彎' },
+    { id: 'slope', name: '4. 斜面省力' },
+    { id: 'report', name: '📋 實驗紀錄' },
+  ];
+
+  const navigateTo = (s) => {
+    setStage(s);
+    setMenuOpen(false);
+  };
+
+  return (
+    <div className={`min-h-screen ${COLORS.sand} font-sans select-none flex items-center justify-center p-4`}>
+      <div className="w-full max-w-2xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden flex flex-col h-[750px] border-4 border-white relative">
+        
+        {/* Header with Navigation */}
+        <header className="bg-amber-400 p-4 shadow-md z-30 flex items-center justify-between">
+          <button 
+            onClick={() => navigateTo('intro')}
+            className="p-2 hover:bg-white/20 rounded-lg text-white transition-colors"
+          >
+            <Home size={24} />
+          </button>
+          
+          <h1 className="text-xl font-black text-white">🏗️ 小小建築師</h1>
+          
+          <div className="relative">
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-2 hover:bg-white/20 rounded-lg text-white transition-colors flex items-center gap-1"
+            >
+              <Menu size={24} />
+            </button>
+            
+            {menuOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border-2 border-amber-100 py-2 animate-bounce-in">
+                {stages.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => navigateTo(s.id)}
+                    className={`w-full text-left px-4 py-2 text-sm font-bold transition-colors ${stage === s.id ? 'bg-amber-50 text-amber-600' : 'text-slate-600 hover:bg-gray-50'}`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-hidden relative p-4 flex flex-col">
+          {stage === 'intro' && (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 animate-fade-in">
+              <div className="text-7xl animate-bounce">🐫</div>
+              <div>
+                <h2 className="text-3xl font-bold text-amber-800">歡迎來到古埃及！</h2>
+                <p className="text-stone-600">選擇一個實驗開始吧</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                {stages.slice(0, 4).map(s => (
+                  <button 
+                    key={s.id}
+                    onClick={() => setStage(s.id)}
+                    className="bg-white border-2 border-amber-200 p-4 rounded-xl font-bold text-amber-700 hover:border-amber-400 hover:bg-amber-50 transition-all shadow-sm"
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {stage === 'rolling' && <RollingExperiment onNext={()=>setStage('shape')} />}
+          {stage === 'shape' && <ShapeChallenge onNext={()=>setStage('ball')} />}
+          {stage === 'ball' && <BallExperiment onNext={()=>setStage('slope')} />}
+          {stage === 'slope' && <SlopeExperiment onNext={()=>setStage('report')} />}
+          {stage === 'report' && <LabReport onReset={()=>setStage('intro')} />}
+        </main>
+        
+        {/* Backdrop for closing menu */}
+        {menuOpen && (
+          <div 
+            className="absolute inset-0 z-20"
+            onClick={() => setMenuOpen(false)}
+          />
+        )}
+        
+        <Watermark />
+      </div>
+      <style>{`
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fade-in 0.4s ease-out; }
+        @keyframes bounce-in { 0% { transform: scale(0.85); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .animate-bounce-in { animation: bounce-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+      `}</style>
+    </div>
+  );
+};
+
+export default App;
